@@ -1,0 +1,29 @@
+{
+  "name": "mygit",
+  "version": "1.0.0",
+  "type":"module",
+  "description": "A git like version control system. A personal project done during the summer of 2026.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "run": "node ./dist/main.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Sahoo-Achyutananda/mygit.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Sahoo-Achyutananda/mygit/issues"
+  },
+  "homepage": "https://github.com/Sahoo-Achyutananda/mygit#readme",
+  "devDependencies": {
+    "crypto": "^1.0.1",
+    "typescript": "^6.0.3"
+  },
+  "dependencies": {
+    "@types/node": "^25.9.2"
+  }
+}
