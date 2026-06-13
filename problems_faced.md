@@ -84,3 +84,87 @@ export function decompress(...) { ... }
 npx tsx test/test_utils.ts
 ```
 `tsx` handles ES modules automatically with no extra config.
+
+---
+
+## Day 4 — objects.ts part 1 (types + hashing)
+
+### Key Concepts
+
+**Git object types**
+Git has 4 object types: `blob`, `tree`, `commit`, `tag`. Every object is identified by its SHA1 hash.
+
+**Git object storage format**
+Git doesn't hash just the raw content. It wraps it in a header first:
+```
+"type size\0data"
+```
+Example for `"hello\n"` (6 bytes):
+```
+"blob 6\0hello\n"
+```
+The SHA1 of this full string is the object's hash. That's what `storeBytes` builds.
+
+**Why hash the header too?**
+So that a blob and a tree with the same raw bytes get different hashes. The type is part of the identity.
+
+**`makeBlob`**
+A blob is just raw file content wrapped in a `GitObject`. No metadata — just the bytes.
+```typescript
+makeBlob("hello\n") → { type: "blob", data: Buffer("hello\n") }
+```
+
+**Verifying your implementation**
+The hash of `"hello\n"` is always `ce013625030ba8dba906f756967f9e9ca394464a` in real git. You can verify with:
+```
+echo "hello" | git hash-object --stdin
+```
+If your output matches, your implementation is correct.
+
+**`TreeEntry` is a pointer, not a node**
+A `TreeEntry` has a `mode`, `name`, and `hash`. The hash points to either a blob (file) or another tree (subdirectory). The entry itself is just a row in a directory listing.
+
+| mode | points to |
+|---|---|
+| `100644` | blob (regular file) |
+| `040000` | tree (subdirectory) |
+
+---
+
+## Day 5 — objects.ts part 2 (makeTree + makeCommit)
+
+### Key Concepts
+
+**Why tree format is binary but commit format is text**
+- Tree objects store hashes as 20 raw bytes (not 40 hex chars) to save space. A directory with many files would be huge otherwise.
+- Commit objects are plain readable text because they're small and humans may need to read them directly.
+
+**`makeTree` binary format**
+For each entry:
+```
+"mode name\0" + 20 raw bytes (SHA1 hash)
+```
+The `\0` separates the name from the hash. The hash is converted from 40 hex chars to 20 binary bytes:
+```typescript
+Buffer.from(entry.hash, "hex")  // "hex" tells Buffer to decode as hex
+```
+
+**`makeCommit` text format**
+```
+tree <treeHash>
+parent <parentHash>      ← optional, omitted for the very first commit
+author Name <email> timestamp +0000
+committer Name <email> timestamp +0000
+                         ← blank line required
+commit message
+```
+The blank line between headers and message is mandatory — git uses it to know where headers end.
+
+**Parent hash is optional**
+The first commit in a repo has no parent. Every commit after that has at least one. Merge commits have two parents. That's how git builds the commit history chain.
+
+**Timestamp format**
+Git stores time as Unix timestamp (seconds since 1970) + timezone offset:
+```
+1234567890 +0000
+```
