@@ -43,7 +43,7 @@ export function makeBlob(content : Buffer | string) : GitObject{
 
 // Day 5 -
 // This returns a tree object
-function makeTree(entries : TreeEntry[]) : GitObject {
+export function makeTree(entries : TreeEntry[]) : GitObject {
     const parts = entries.map(entry => {
         const header = Buffer.from(`${entry.mode} ${entry.name}\0`);
         const hashBytes = Buffer.from(entry.hash, "hex"); // git stores this as hexadecimal
@@ -54,7 +54,7 @@ function makeTree(entries : TreeEntry[]) : GitObject {
 }
 
 // this returns a commit object
-function makeCommit(treeHash : string, parentHash : string | null, name : string, email : string, message : string) : GitObject {
+export function makeCommit(treeHash : string, parentHash : string | null, name : string, email : string, message : string) : GitObject {
     const timeStamp = `${Math.floor(Date.now() / 1000)} +0000`;
     const author = `${name} <${email}> ${timeStamp}`;
 
@@ -73,7 +73,7 @@ function makeCommit(treeHash : string, parentHash : string | null, name : string
 // Day 6 - parsers 
 
 // parses the string returned by makeTree -> it just reverses what makeTree does -
-function parseTree(object : GitObject): TreeEntry[] {
+export function parseTree(object : GitObject): TreeEntry[] {
     const entries : TreeEntry[] = [];
     let i = 0;
 
