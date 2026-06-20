@@ -5,6 +5,7 @@ import { Index } from "./index.js";
 import { Refs } from "./refs.js";
 
 import  {makeTree, hashObject} from "./objects.js";
+import {parseCommit, parseTree, makeBlob} from "./objects.js";
 
 export class Repository{
     store : Store;
@@ -83,6 +84,87 @@ export class Repository{
         this.index.load(); // this loads the Map from the INDEX file
         return this.buildTree(this.index.all(), ""); // remember the all() method we added -> it returns the entire MAp here 
         // the all method is like a get method basicallty
+    }
+
+    // this function will traverse through the commits 
+    getLog(startHash ?: string) : {hash : string; author : string; message : string}[]{
+        const log = [];
+        let hash = startHash ?? this.refs.headCommit(); // ?? is the null coalescing operator -> returns left had side if not null or undefined , but the right hand side is null or undefined
+        
+        while(hash){
+            const obj = this.store.read(hash);
+            const commit = parseCommit(obj);
+            log.push({hash : hash, author : commit.author, message : commit.message});
+            hash = commit.parent;
+        }
+
+        return log;
+    
+    }
+
+    // flatten a tree into a Map<path, hash>
+
+    private treeToEntries(treeHash: string, prefix : string) : Map<string, string>{
+        const result = new Map<string, string>();
+        const entries = parseTree(this.store.read(treeHash));
+        
+        for(const entry of entries){
+            const fullPath = prefix + entry.name;
+            if(entry.name === "040000"){ // code for a subdirectory
+                for(const [p,h] of this.treeToEntries(entry.hash, fullPath + "/")){
+                    result.set(p,h);
+                }
+            }else{
+                result.set(fullPath, entry.hash);
+            }
+        }
+
+        return result;
+
+    }
+
+    // writes back a tree (files and directories within it - on the disk)
+    restoreTree(treeHash : string, dir : string) : void{
+        const entries = parseTree(this.store.read(treeHash));
+
+        for(const entry of entries){
+            const fullPath = path.join(dir, entry.name);
+            if(entry.mode === "040000"){
+                fs.mkdirSync(fullPath, {recursive : true});
+                this.restoreTree(entry.hash, fullPath);
+            }else{
+                const blob = this.store.read(entry.hash);
+                fs.mkdirSync(path.dirname(fullPath), {recursive : true});
+                fs.writeFileSync(fullPath, blob.data); // this is the line where the actual content is written back
+            }
+        }
+    }
+
+    reachable(startHash : string, stop : Set<String> = new Set()) : Set<string> {
+        const visited = new Set<string>();
+        const queue = [startHash];
+
+        while(queue.length > 0){
+            const hash = queue.pop()!;
+            if(visited.has(hash) || stop.has(hash)) continue;
+            visited.add(hash);
+
+            const obj = this.store.read(hash);
+
+            if(obj.type == "commit"){
+                const commit = parseCommit(obj);
+                queue.push(commit.tree);
+                if(commit.parent) queue.push(commit.parent);
+            }else if(obj.type === "tree"){
+                const entries = parseTree(obj);
+                for(const entry of entries){
+                    queue.push(entry.hash);
+                }
+            }
+            // skipping blobs -> cause we have noting to push
+        }
+
+        return visited;
     }
 
 }
