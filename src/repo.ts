@@ -4,8 +4,7 @@ import { Store } from "./store.js";
 import { Index } from "./index.js";
 import { Refs } from "./refs.js";
 
-import  {makeTree, hashObject} from "./objects.js";
-import {parseCommit, parseTree, makeBlob} from "./objects.js";
+import { makeTree, hashObject, parseCommit, parseTree } from "./objects.js";
 
 export class Repository{
     store : Store;
@@ -36,15 +35,14 @@ export class Repository{
         let current = process.cwd();
 
         while(true){
-            if(fs.existsSync(path.join(current, "mygit"))){ // searches for current_dir/mygit
+            if(fs.existsSync(path.join(current, ".mygit"))){
                 return new Repository(current);
             }
+            const parent = path.dirname(current);
+            if(parent === current)
+                throw new Error("not a mygit repository");
+            current = parent;
         }
-
-        const parent = path.dirname(current);
-        if(parent === current)
-            throw new Error("not a mygit repository");
-        current = parent;
     }
 
     // add inside the Repository class
@@ -110,7 +108,7 @@ export class Repository{
         
         for(const entry of entries){
             const fullPath = prefix + entry.name;
-            if(entry.name === "040000"){ // code for a subdirectory
+            if(entry.mode === "040000"){ // code for a subdirectory
                 for(const [p,h] of this.treeToEntries(entry.hash, fullPath + "/")){
                     result.set(p,h);
                 }
@@ -140,7 +138,7 @@ export class Repository{
         }
     }
 
-    reachable(startHash : string, stop : Set<String> = new Set()) : Set<string> {
+    reachable(startHash : string, stop : Set<string> = new Set()) : Set<string> {
         const visited = new Set<string>();
         const queue = [startHash];
 

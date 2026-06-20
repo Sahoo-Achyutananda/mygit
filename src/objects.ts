@@ -3,7 +3,7 @@ import { sha1 } from "./utils.js";
 // there are 4 types of objects in git -> blob, tree, commit and  a tag
 type ObjType = "blob" | "tree" | "commit";
 
-interface GitObject{
+export interface GitObject{
     type : ObjType,
     data : Buffer
 }
@@ -109,14 +109,12 @@ export function parseCommit(obj: GitObject): {
     let author = "";
 
     // read headers until blank line
-    while (i < lines.length && lines[i] !== "") {
-        const line = lines[i];
-        if (line.startsWith("tree ")) 
-            tree   = line.slice(5);
-        if (line.startsWith("parent "))    
-            parent = line.slice(7);
-        if (line.startsWith("author "))    
-            author = line.slice(7);
+    while(i < lines.length){
+        const line = lines[i]!;
+        if (line === "") break;
+        if (line.startsWith("tree ")) tree = line.slice(5);
+        if (line.startsWith("parent ")) parent = line.slice(7);
+        if (line.startsWith("author ")) author = line.slice(7);
         i++;
     }
 
