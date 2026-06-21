@@ -102,7 +102,7 @@ export class Repository{
 
     // flatten a tree into a Map<path, hash>
 
-    private treeToEntries(treeHash: string, prefix : string) : Map<string, string>{
+    public treeToEntries(treeHash: string, prefix : string) : Map<string, string>{
         const result = new Map<string, string>();
         const entries = parseTree(this.store.read(treeHash));
         
